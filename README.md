@@ -11,7 +11,7 @@ In recent years a large amount of text mining studies carried out on news articl
 
 # MIT License
 
-Copyright (c) [year] Max Sorto
+Copyright (c) 2016 Max Sorto
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
