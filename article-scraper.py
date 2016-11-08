@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 
-## Import necessary libraries
+## Import necessary libraries...
 from newspaper import Article
 from selenium import webdriver
 from bs4 import BeautifulSoup
-from nytimesarticle import articleAPI
 from time import sleep
-from wordcloud import WordCloud
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 import csv
 import math
@@ -14,41 +12,35 @@ import datetime
 import requests
 import os
 import easygui_qt as qt
-import textmining
-import sys
-reload(sys)
+import unicodedata
 
-## Set encoding
-## ----
-sys.setdefaultencoding('utf8')
-
-## Build UI
-## Prompt user for a search topic
-## ----
+## GUI - Prompt user for a search topic...
 input_topic = qt.get_string('Enter a search topic: ')
 
+## Convert input topic to lowercase
+topic = (input_topic.lower()).replace(' ', '%20')
+
+## GUI - Prompt user for a start and end dates...
 input_date_start = qt.get_date('Select search START date')
 input_date_end = qt.get_date('Select search END date')
 
+## Convert format of date variables...
 start = datetime.datetime.strptime(input_date_start, '%a %b %d %Y')
 end = datetime.datetime.strptime(input_date_end, '%a %b %d %Y')
 
+## Date range string to be used as folder title...
 daterange = start.strftime("%b%d-%Y")+'_TO_'+end.strftime("%b%d-%Y")
 
+## GUI - Prompt user to select news sources...
 choices = ['Washington Post', 'Reuters']
-
 journal = qt.get_list_of_choices(title='Select Journals to Scrape',
                                 choices=choices)
 
+## GUI - Prompt user to select path for output...
 savepath = qt.get_directory_name(title='Select output location...')
 
-## Convert input topic to lowercase
-## ----
-topic = (input_topic.lower()).replace(' ', '%20')
 
-
-## Configure PhantomJS browser to accept JavaScript Clicks
-## ----
+## Configure PhantomJS browser to accept JavaScript Clicks...
 user_agent = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_4) " +
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.57 Safari/537.36"
@@ -56,12 +48,12 @@ user_agent = (
 dcap = dict(DesiredCapabilities.PHANTOMJS)
 dcap["phantomjs.page.settings.userAgent"] = user_agent
 
-## Create PhantomJS browser session
-## ----
+## Create PhantomJS browser session....
 browser = webdriver.PhantomJS(desired_capabilities=dcap)
 browser.set_window_size(1024, 768)
 
 
+## Function for scraping URLs from The Washington Post's website...
 def wapo():
 
     ## Base URL for our searches
@@ -131,6 +123,8 @@ def wapo():
 
     return wapo_results_list
 
+
+## Function for scraping URLs from Reuters's website...
 def reuters():
 
     baseUrl = 'http://www.reuters.com/search/news?blob=%s&sortBy=date' % (topic)
@@ -193,6 +187,7 @@ def reuters():
 
     return reu_results_list
 
+## Function for writing news article text files and metadata spreadsheet...
 def write_csv(results_file_name, results_path, list_of_urls):
 
     ## Create a directory for all articles if it doesn't exist
@@ -220,21 +215,34 @@ def write_csv(results_file_name, results_path, list_of_urls):
             a = Article(url)
             a.download()
             a.parse()
+
+            title = a.title
+            title = unicodedata.normalize('NFKD', title).encode('ascii', 'ignore')
+
+            text = a.text
+            text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore')
+
+            publish_date = a.publish_date
+            publish_date = unicodedata.normalize('NFKD', publish_date).encode('ascii', 'ignore')
+
+            authors = a.authors
+            authors = unicodedata.normalize('NFKD', authors).encode('ascii', 'ignore')
+
+
             counter2 += 1
             article_id = 'article'+str(counter2)
-
             
             filename = article_id+'.txt'
             filepath = os.path.join(path, filename)
 
             print 'writing row for %s' % (article_id)
-            writer.writerow({'id': article_id,'date': a.publish_date, 'search term': input_topic, 'title': a.title, 'authors': a.authors, 'URL': url, 'filepath': filepath})
+            writer.writerow({'id': article_id,'date': publish_date, 'search term': input_topic, 'title': title, 'authors': authors, 'URL': url, 'filepath': filepath})
 
             file = open(filepath,'w')
 
-            file.write(a.title)
+            file.write(title)
             file.write('\n')
-            file.write(a.text)
+            file.write(text)
             
             file.close()
 #######
